@@ -1,4 +1,4 @@
-name: Build and push container image, and push update to jupyterhub repo if needed
+name: Build and push container image, and push update to jupyterhub repo
 on:
   workflow_dispatch:
   push:
