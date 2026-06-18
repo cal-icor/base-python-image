@@ -33,10 +33,22 @@ jobs:
           BOT_NAME: ${{ vars.IMAGE_BUILDER_BOT_NAME }}
           BOT_EMAIL: ${{ vars.IMAGE_BUILDER_BOT_EMAIL }}
           THIS_REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
 
           echo "Searching for repos in ${ORG} using ${BASE_IMAGE}..."
+
+          # Find the base-python-image PR that triggered this tag update, so we can
+          # link back to it from the downstream PRs we open below.
+          SOURCE_PR_URL=$(gh pr list -R "$THIS_REPO" \
+            --search "$SHA" --state merged \
+            --json url --jq '.[0].url // empty' || true)
+          if [[ -n "$SOURCE_PR_URL" ]]; then
+            echo "Source base-image PR: $SOURCE_PR_URL"
+          else
+            echo "No associated PR found for $SHA"
+          fi
 
           REPOS=$(gh repo list "$ORG" \
             --limit 500 \
@@ -96,10 +108,15 @@ jobs:
             git commit -m "update base image tag to ${IMAGE_TAG}"
             git push origin "$BRANCH"
 
+            BODY="Automated update: bump \`${BASE_IMAGE}\` to \`${IMAGE_TAG}\`."
+            if [[ -n "$SOURCE_PR_URL" ]]; then
+              BODY="${BODY}"$'\n\n'"Triggered by base image PR: ${SOURCE_PR_URL}"
+            fi
+
             gh pr create \
               --repo "$repo" \
               --title "update base image tag to ${IMAGE_TAG}" \
-              --body "Automated update: bump \`${BASE_IMAGE}\` to \`${IMAGE_TAG}\`." \
+              --body "$BODY" \
               --head "$BRANCH" \
               --base "$DEFAULT_BRANCH"
 
