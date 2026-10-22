@@ -36,6 +36,7 @@ dependencies:
   # data science
   - datascience==0.18.1
   - matplotlib==3.11.0
+  - mkl<2026.2  # conda-forge/intel_repack-feedstock#145
   - numpy==2.4.6
   - geopandas==1.1.3
   - geopy==2.4.1
